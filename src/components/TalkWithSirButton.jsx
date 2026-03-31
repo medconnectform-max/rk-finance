@@ -261,7 +261,7 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
 
       return `
         <tr style="background:${index % 2 === 0 ? 'transparent' : rowAlt};">
-          <td style="padding:10px;border:1px solid ${bdr};text-align:left;">${chapter}</td>
+          <td style="padding:10px;border:1px solid ${bdr};text-align:left;">${chapter }</td>
           <td style="padding:10px;border:1px solid ${bdr};text-align:center;font-weight:700;color:${color};">
             ${percent}%
           </td>
@@ -272,15 +272,13 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
 
     return `
       <div class="subject-table-block" style="margin-top:22px; page-break-inside: avoid; break-inside: avoid;">
-        <h3 style="margin:0 0 10px 0;font-size:1.05rem;color:${accent}; page-break-after: avoid; break-after: avoid;">
-          ${subject} 
-        </h3>
+      
 
         <div style="overflow:hidden;border:1px solid ${bdr};border-radius:10px;background:${tableBg}; page-break-inside: avoid; break-inside: avoid;">
           <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
             <thead>
               <tr style="background:${headBg};">
-                <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Chapter</th>
+                <th style="padding:10px;border:1px solid ${bdr};text-align:left;">${subject}</th>
                 <th style="padding:10px;border:1px solid ${bdr};text-align:center;">Score</th>
             
               </tr>
