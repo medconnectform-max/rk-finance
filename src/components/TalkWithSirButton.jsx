@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import html2pdf from 'html2pdf.js';
 import { MessageCircle, X, Download, FileText, Loader2 } from 'lucide-react';
+import PQBTOTAL from '../config/PQB';
 import {
   WHATSAPP_NUMBER,
   WHATSAPP_TEMPLATE,
@@ -71,10 +72,11 @@ const COLORS = {
 };
 
 const QUESTION_CHARTS = [
-  { id: 'q1', label: 'Lectures Completion', color: '#6366f1' },
-  { id: 'q2', label: 'Reading Completion', color: '#10b981' },
-  { id: 'q3', label: 'Practice Completion', color: '#f59e0b' },
-  { id: 'q4', label: 'Revision Completion', color: '#ef4444' },
+  { id: 'q1', label: 'Video Lecture Status', color: '#6366f1' },
+  { id: 'q2', label: 'Reading Status', color: '#10b981' },
+  { id: 'q3', label: 'QB Practice Status', color: '#f59e0b' },
+  { id: 'q4', label: 'Revision Status', color: '#ef4444' },
+  { id: 'q5', label: 'Test Taken Status', color: '#ef4444' },
 ];
 
 const SHORT_NAMES = {
@@ -136,6 +138,11 @@ function buildChartSVG(subjectName, isDark) {
     </svg>
   `;
 }
+function getPerformanceColor(percent) {
+  if (percent > 80) return '#22c55e';   // green
+  if (percent >= 50) return '#f59e0b';  // yellowish orange
+  return '#f472b6';                     // pinkish red
+}
 
 function buildQuestionChartSVG(qId, qColor, isDark) {
   const yesCounts = SUBJECTS.map((sub) => {
@@ -157,39 +164,48 @@ function buildQuestionChartSVG(qId, qColor, isDark) {
   });
 
   const maxCounts = SUBJECTS.map((sub) => (getChapters(sub) || []).length);
-  const globalMax = Math.max(...maxCounts, 1);
+
+  // percentages instead of raw counts
+  const percentages = yesCounts.map((count, idx) => {
+    const max = maxCounts[idx] || 0;
+    if (!max) return 0;
+    return Math.round((count / max) * 100);
+  });
+
   const totalBars = SUBJECTS.length;
   const W = Math.max(460, totalBars * 44);
   const H = 130;
   const barW = 26;
   const gap = (W - 30 - barW * totalBars) / (totalBars + 1);
+
   const textCol = isDark ? '#a0aec0' : '#718096';
   const gridCol = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const trackFill = isDark ? '#2d3748' : '#e2e8f0';
 
   let yLabels = '';
-  for (let i = 0; i <= globalMax; i++) {
-    const y = H - (i / globalMax) * H + 10;
-    yLabels += `<text x="18" y="${y + 3}" text-anchor="end" font-size="8" fill="${textCol}">${i}</text>`;
+  for (let i = 0; i <= 100; i += 20) {
+    const y = H - (i / 100) * H + 10;
+    yLabels += `<text x="18" y="${y + 3}" text-anchor="end" font-size="8" fill="${textCol}">${i}%</text>`;
     yLabels += `<line x1="22" y1="${y}" x2="${W + 5}" y2="${y}" stroke="${gridCol}" stroke-width="0.5" stroke-dasharray="3,3"/>`;
   }
 
   let bars = '';
   yesCounts.forEach((count, idx) => {
+    const max = maxCounts[idx] || 0;
+    const percent = percentages[idx];
     const x = 25 + gap + idx * (barW + gap);
-    const barH = globalMax > 0 ? (count / globalMax) * H : 0;
+    const barH = (percent / 100) * H;
     const y = H - barH + 10;
 
+    const barColor = getPerformanceColor(percent);
+
     bars += `<rect x="${x}" y="10" width="${barW}" height="${H}" rx="4" fill="${trackFill}" opacity="0.5"/>`;
-    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${qColor}"/>`;
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${barColor}"/>`;
 
-    if (count > 0) {
-      const isComplete = count === maxCounts[idx];
-      const textColor = isComplete ? '#22c55e' : '#ef4444';
-
+    if (max > 0) {
       bars += `
-        <text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" font-size="8" font-weight="700" fill="${textColor}">
-          ${count}/${maxCounts[idx]}
+        <text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" font-size="8" font-weight="700" fill="${barColor}">
+          ${count}/${max} (${percent}%)
         </text>
       `;
     }
@@ -207,7 +223,11 @@ function buildQuestionChartSVG(qId, qColor, isDark) {
         </text>
       `;
     } else {
-      bars += `<text x="${x + barW / 2}" y="${H + 22}" text-anchor="middle" font-size="12px" font-weight="900" fill="${textCol}">${label}</text>`;
+      bars += `
+        <text x="${x + barW / 2}" y="${H + 22}" text-anchor="middle" font-size="12px" font-weight="900" fill="${textCol}">
+          ${label}
+        </text>
+      `;
     }
   });
 
@@ -281,7 +301,6 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
   }).join('');
 }
 
-
 function buildSubjectSummaryChartSVG(yesCounts, isDark) {
   const values = yesCounts.map((sub) =>
     sub.max ? Math.round((sub.total / sub.max) * 100) : 0
@@ -309,11 +328,7 @@ function buildSubjectSummaryChartSVG(yesCounts, isDark) {
     const barH = (percent / 100) * H;
     const y = H - barH + 10;
 
-    const color =
-      percent === 100 ? '#22c55e' :
-      percent >= 70 ? '#3b82f6' :
-      percent >= 40 ? '#f59e0b' :
-      '#ef4444';
+    const color = getPerformanceColor(percent);
 
     const label = SHORT_NAMES[SUBJECTS[idx]] || SUBJECTS[idx];
     const words = label.split(' ');
@@ -355,7 +370,6 @@ function buildSubjectSummaryChartSVG(yesCounts, isDark) {
   `;
 }
 
-
 function getTimeRemaining(examMonthYear) {
   if (!examMonthYear) return '';
 
@@ -389,12 +403,11 @@ function buildReportHTML() {
     details = JSON.parse(localStorage.getItem('generalDetails')) || details;
   } catch {}
 
-
   const timeLeft = getTimeRemaining(details.exam);
 
   const yesCounts = SUBJECTS.map((sub) => {
     const chapters = getChapters(sub) || [];
-    const counts = { q1: 0, q2: 0, q3: 0, q4: 0 };
+    const counts = { q1: 0, q2: 0, q3: 0, q4: 0, q5: 0 };
 
     chapters.forEach((ch) => {
       const key = `trackpro_${sub}_${ch.replace(/\s+/g, '')}`;
@@ -406,12 +419,24 @@ function buildReportHTML() {
           if (parsed.q2 === 'Yes') counts.q2++;
           if (parsed.q3 === 'Yes') counts.q3++;
           if (parsed.q4 === 'Yes') counts.q4++;
+          if (parsed.q5 === 'Yes') counts.q5++;
         }
       } catch {}
     });
 
     const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-    return { subject: sub, total: totalCount, max: chapters.length * 4 };
+
+    const premiumQBKey = `trackpro_${sub}_premiumQuestionBank`;
+    const premiumQBCount = localStorage.getItem(premiumQBKey) ? parseInt(localStorage.getItem(premiumQBKey)) : 0;
+    // const totalWithPremium = totalCount + premiumQBCount;
+
+    const thisChapterPremiumCount = PQBTOTAL[sub];
+    const toAdd = Math.round(((premiumQBCount/thisChapterPremiumCount) * chapters.length));
+
+    console.log(toAdd, premiumQBCount, thisChapterPremiumCount, chapters.length)
+
+    
+    return { subject: sub, total: totalCount+toAdd, max: chapters.length * 5  + chapters.length};
   });
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -420,11 +445,42 @@ function buildReportHTML() {
   const txt2 = isDark ? '#a0aec0' : '#4a5568';
   const accent = '#3182ce';
   const bdr = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const cardBg = isDark ? '#1f2937' : '#ffffff';
+  const logoUrl ='https://res.cloudinary.com/dzl0crskt/image/upload/v1774970092/RK-Finance-Classes-Logo-ed-1_eauuxw.png'
 
   return `
     <div style="font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:${bg};padding:28px;color:${txt};width:800px;">
       <style>
         * { box-sizing: border-box; }
+
+        @media print {
+          @page {
+            margin: 24mm 14mm 18mm 14mm;
+          }
+
+          body {
+            margin: 0;
+            padding: 0;
+          }
+
+          .print-logo-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 78px;
+            background: ${bg};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid ${bdr};
+            z-index: 9999;
+          }
+
+          .report-content {
+            padding-top: 95px;
+          }
+        }
 
         .page-break-avoid,
         .subject-table-block,
@@ -455,54 +511,92 @@ function buildReportHTML() {
         }
       </style>
 
-      <div class="report-header" style="text-align:center;margin-bottom:20px;">
-        <h1 style="font-size:1.5rem;margin:0 0 4px 0;color:${accent};">📊 Student Progress Report</h1>
-        <p style="margin:0;font-size:0.85rem;color:${txt2};">
-          Generated on ${new Date().toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </p>
-          ${details.exam ? `
-  <div style="margin:10px auto 0 auto;max-width:320px;padding:10px 14px;border-radius:12px;background:${isDark ? 'rgba(49,130,206,0.12)' : 'rgba(49,130,206,0.08)'};border:1px solid ${isDark ? 'rgba(49,130,206,0.28)' : 'rgba(49,130,206,0.20)'};">
-    <p style="margin:0;font-size:0.9rem;font-weight:700;color:${txt};">
-      Exam: <span style="color:${accent};">${details.exam}</span>
-    </p>
-    ${timeLeft ? `
-      <p style="margin:4px 0 0 0;font-size:0.82rem;color:${txt2};">
-        ⏳ ${timeLeft}
-      </p>
-    ` : ''}
-  </div>
-` : ''}
-     
-        </div>
-
-      <div class="page-break-avoid">
-        <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">📊 Subject-wise Completion</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          ${QUESTION_CHARTS.map((q) => {
-            const chartBg = isDark ? `${q.color}15` : `${q.color}12`;
-            return `
-              <div class="chart-card" style="padding:12px;border:1px solid ${bdr};border-radius:10px;background:${chartBg};">
-                <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:${txt};display:flex;align-items:center;gap:6px;">
-                  <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${q.color};"></span>
-                  ${q.label}
-                </h4>
-                ${buildQuestionChartSVG(q.id, q.color, isDark)}
-                <div style="text-align:center;font-size:0.65rem;color:${txt2};margin-top:2px;">
-                  Yes = 1 | No = 0 · per chapter
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
+      <div class="print-logo-header">
+        <img
+          src="${logoUrl}"
+          alt="RKClasses"
+          style="max-height:52px;width:auto;object-fit:contain;"
+        />
       </div>
 
-     <div class="summary-table-wrap" style="margin-top:20px;">
+      <div class="report-content">
+        <div class="report-header" style="text-align:center;margin-bottom:20px;">
+          <div style="margin-bottom:14px;">
+            <img
+              src="${logoUrl}"
+              alt="RKClasses"
+              style="width:220px;max-width:100%;height:auto;object-fit:contain;"
+            />
+          </div>
+
+          <h1 style="font-size:1.5rem;margin:0 0 4px 0;color:${accent};">📊 Student Progress Report</h1>
+
+          <p style="margin:0;font-size:0.85rem;color:${txt2};">
+            Generated on ${new Date().toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </p>
+
+          ${details.exam ? `
+            <div style="margin:10px auto 0 auto;max-width:320px;padding:10px 14px;border-radius:12px;background:${isDark ? 'rgba(49,130,206,0.12)' : 'rgba(49,130,206,0.08)'};border:1px solid ${isDark ? 'rgba(49,130,206,0.28)' : 'rgba(49,130,206,0.20)'};">
+              <p style="margin:0;font-size:0.9rem;font-weight:700;color:${txt};">
+                Exam: <span style="color:${accent};">${details.exam}</span>
+              </p>
+              ${timeLeft ? `
+                <p style="margin:4px 0 0 0;font-size:0.82rem;color:${txt2};">
+                  ⏳ ${timeLeft}
+                </p>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="page-break-avoid">
+          <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">📊 Subject-wise Completion</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            ${QUESTION_CHARTS.map((q) => {
+              const chartBg = isDark ? `${q.color}15` : `${q.color}12`;
+              return `
+                <div class="chart-card" style="padding:12px;border:1px solid ${bdr};border-radius:10px;background:${chartBg};">
+                  <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:${txt};display:flex;align-items:center;gap:6px;">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${q.color};"></span>
+                    ${q.label}
+                  </h4>
+                  ${buildQuestionChartSVG(q.id, q.color, isDark)}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="summary-table-wrap" style="margin-top:20px;">
+          <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
+            Subject Level Summary
+          </h3>
+
+          
+          <div
+            class="chart-card"
+            style="
+              padding:14px;
+              border:1px solid ${bdr};
+              border-radius:10px;
+              background:${cardBg};
+            "
+          >
+            ${buildSubjectSummaryChartSVG(yesCounts, isDark)}
+            <div style="text-align:center;font-size:0.72rem;color:${txt2};margin-top:4px;">
+              Overall subject score in percentage
+            </div>
+          </div>
+
+
+
+
   <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
-    Subject Level Summary
+    Subject Level Summary Table
   </h3>
 
   <div
@@ -511,24 +605,58 @@ function buildReportHTML() {
       padding:14px;
       border:1px solid ${bdr};
       border-radius:10px;
-      background:${isDark ? '#1f2937' : '#ffffff'};
+      background:${cardBg};
+      overflow:hidden;
     "
   >
-    ${buildSubjectSummaryChartSVG(yesCounts, isDark)}
-    <div style="text-align:center;font-size:0.72rem;color:${txt2};margin-top:4px;">
-      Overall subject score in percentage
-    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+      <thead>
+        <tr style="background:${isDark ? '#111827' : '#f8fafc'};">
+          <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Subject</th>
+      
+          <th style="padding:10px;border:1px solid ${bdr};text-align:center;">Percentage</th>
+         
+        </tr>
+      </thead>
+      <tbody>
+        ${yesCounts.map((sub) => {
+          const percent = sub.max ? Math.round((sub.total / sub.max) * 100) : 0;
+          const color = getPerformanceColor(percent);
+          const status =
+            percent > 80 ? 'Excellent' :
+            percent >= 50 ? 'Average' :
+            'Needs Improvement';
+
+          return `
+            <tr>
+              <td style="padding:10px;border:1px solid ${bdr};">${sub.subject}</td>
+            
+              <td style="padding:10px;border:1px solid ${bdr};text-align:center;color:${color};font-weight:700;">
+                ${percent}%
+              </td>
+            
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
   </div>
 </div>
+        </div>
 
-      ${buildSubjectChapterTables(isDark, txt2, accent, bdr)}
+        ${buildSubjectChapterTables(isDark, txt2, accent, bdr)}
+      </div>
     </div>
   `;
 }
 
 // ─── PDF Generator ─────────────────────────────────────────────────────
 async function createPdfFromElement(element) {
-  const fileName = `Student_Progress_${new Date().toISOString().split('T')[0]}.pdf`;
+  let name = localStorage.getItem('generalDetails') || '';
+  let fullName = name ? JSON.parse(name).fullName || '' : 'Progress';
+  let number = name ? JSON.parse(name).mobile : '';
+  console.log(name)
+  const fileName = `${fullName}_${number}_${new Date().toISOString().split('T')[0]}.pdf`;
 
   const opt = {
     margin: [1,1,1,1],
@@ -676,7 +804,7 @@ export default function TalkWithSirButton() {
         <p style={{ color: 'var(--text-secondary)', margin: '0 auto 1.5rem auto', maxWidth: '600px' }}>
           {pdfReady
             ? 'PDF is ready! Tap "Share PDF" to send it.'
-            : 'Tap "Generate PDF" first, then share it on WhatsApp.'}
+            : 'Click on "Send PDF to Sir" your PDF will be generated automatically and send automatically'}
         </p>
 
         {/* Step 1 — Generate */}
@@ -702,7 +830,7 @@ export default function TalkWithSirButton() {
 ) : pdfReady ? (
   <><FileText /> ✓ PDF Ready — Regenerate</>
 ) : (
-  <><MessageCircle /> Talk With Sir</>
+  <><MessageCircle /> Send PDF to Sir</>
 )}
         </button>
 
@@ -720,7 +848,7 @@ export default function TalkWithSirButton() {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            <MessageCircle /> Share PDF on WhatsApp
+            <MessageCircle /> Share PDF to sir
           </button>
         )}
       </div>

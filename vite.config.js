@@ -14,7 +14,7 @@ export default defineConfig({
 
 
     allowedHosts: [
-      'remembered-trial-investigators-biodiversity.trycloudflare.com'
+      'added-analytical-sagem-nicole.trycloudflare.com'
     ],
 
   }

@@ -4,129 +4,132 @@ import { CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export default function ChapterAccordion({ subjectName, chapterName }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [hasAutoClosed, setHasAutoClosed] = useState(() => {
-  // If already completed on mount, pretend we already auto-closed
-  // so the effect never fires the advance chain on refresh
-  if (typeof window === "undefined") return false;
-  try {
-    const key = `trackpro_${subjectName}_${chapterName.replace(/\s+/g, '')}`;
-    const stored = window.localStorage.getItem(key);
-    if (!stored) return false;
-    const parsed = JSON.parse(stored);
-    const qs = getQuestions(subjectName, chapterName);
-    return qs.length > 0 && qs.every(q => parsed[q.id] && parsed[q.id] !== '');
-  } catch {
-    return false;
-  }
-});
-  const closeTimerRef = useRef(null);
-  const accordionRef = useRef(null);
-
   const questions = getQuestions(subjectName, chapterName);
   const storageKey = `trackpro_${subjectName}_${chapterName.replace(/\s+/g, '')}`;
 
   const defaultState = questions.reduce((acc, q) => {
-    acc[q.id] = '';
+    acc[q.id] = 'No';
     return acc;
   }, {});
 
   const [answers, setAnswers] = useLocalStorage(storageKey, defaultState);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const [hasAutoClosed, setHasAutoClosed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if (!stored) return false;
+      const parsed = JSON.parse(stored);
+      return questions.length > 0 && questions.every(q => parsed[q.id] === 'Yes');
+    } catch {
+      return false;
+    }
+  });
+
+  const closeTimerRef = useRef(null);
+  const accordionRef = useRef(null);
+  const hasMountedRef = useRef(false);
 
   const handleChange = (qId, value) => {
     setAnswers(prev => ({ ...prev, [qId]: value }));
   };
 
+  // Chapter is completed only when all answers are "Yes"
   const isCompleted =
     questions.length > 0 &&
-    questions.every(q => answers[q.id] && answers[q.id] !== '');
+    questions.every(q => answers[q.id] === 'Yes');
 
   const openAccordion = () => setIsOpen(true);
   const closeAccordion = () => setIsOpen(false);
   const toggleAccordion = () => setIsOpen(prev => !prev);
 
-  // Open this accordion when triggered by event (auto-advance)
-useEffect(() => {
-  const openCurrentChapter = (event) => {
-    if (
-      event.detail?.subjectName === subjectName &&
-      event.detail?.chapterName === chapterName
-    ) {
-      openAccordion();
-      setTimeout(() => {
-        const el = accordionRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const bottomOfAccordion = rect.bottom;
-        if (bottomOfAccordion > window.innerHeight) {
-          window.scrollBy({ 
-            top: bottomOfAccordion - window.innerHeight + 24,
-            behavior: 'smooth' 
-          });
-        }
-      }, 750); // 380ms close + 370ms open animation
+  useEffect(() => {
+    const openCurrentChapter = (event) => {
+      if (
+        event.detail?.subjectName === subjectName &&
+        event.detail?.chapterName === chapterName
+      ) {
+        openAccordion();
+
+        setTimeout(() => {
+          const el = accordionRef.current;
+          if (!el) return;
+          const rect = el.getBoundingClientRect();
+          const bottomOfAccordion = rect.bottom;
+
+          if (bottomOfAccordion > window.innerHeight) {
+            window.scrollBy({
+              top: bottomOfAccordion - window.innerHeight + 24,
+              behavior: 'smooth',
+            });
+          }
+        }, 750);
+      }
+    };
+
+    window.addEventListener('openChapterAccordion', openCurrentChapter);
+    return () => window.removeEventListener('openChapterAccordion', openCurrentChapter);
+  }, [subjectName, chapterName]);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
     }
-  };
 
-  window.addEventListener('openChapterAccordion', openCurrentChapter);
-  return () => window.removeEventListener('openChapterAccordion', openCurrentChapter);
-}, [subjectName, chapterName]);
+    if (isCompleted && !hasAutoClosed) {
+      closeTimerRef.current = setTimeout(() => {
+        closeAccordion();
+        setHasAutoClosed(true);
 
-  // Auto-close and advance to next chapter when completed
-  const hasMountedRef = useRef(false);
+        window.dispatchEvent(
+          new CustomEvent('openNextChapterAccordion', {
+            detail: { subjectName, chapterName },
+          })
+        );
+      }, 450);
+    }
 
-useEffect(() => {
-  // Skip on initial mount — don't auto-advance on page load
-  if (!hasMountedRef.current) {
-    hasMountedRef.current = true;
-    return;
-  }
+    if (!isCompleted) {
+      setHasAutoClosed(false);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    }
 
-  if (isCompleted && !hasAutoClosed) {
-    closeTimerRef.current = setTimeout(() => {
-      closeAccordion();
-      setHasAutoClosed(true);
-
-      window.dispatchEvent(
-        new CustomEvent('openNextChapterAccordion', {
-          detail: { subjectName, chapterName },
-        })
-      );
-    }, 450);
-  }
-
-  if (!isCompleted) {
-    setHasAutoClosed(false);
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-  }
-
-  return () => {
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-  };
-}, [isCompleted, hasAutoClosed, subjectName, chapterName]);
-
-
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, [isCompleted, hasAutoClosed, subjectName, chapterName]);
 
   return (
-    <div className="accordion-item " ref={accordionRef}>
+    <div className="accordion-item" ref={accordionRef}>
       <div
         className="accordion-header"
         onClick={toggleAccordion}
-        style={{ borderLeft: isCompleted ? '4px solid var(--success)' : '4px solid transparent' }}
+        style={{
+          borderLeft: isCompleted ? '4px solid var(--success)' : '4px solid transparent',
+        }}
       >
         <div className="flex items-center gap-2">
           {isCompleted && <CheckCircle2 size={18} color="var(--success)" />}
-          <h4 style={{ margin: 0, fontWeight: isCompleted ? 600 : 500 }}>{chapterName}</h4>
+          <h4 style={{ margin: 0, fontWeight: isCompleted ? 600 : 500 }}>
+            {chapterName}
+          </h4>
         </div>
+
         <div className="flex items-center gap-4">
-          <span style={{ fontSize: '0.85rem', color: isCompleted ? 'var(--success)' : 'var(--text-muted)' }}>
+          <span
+            style={{
+              fontSize: '0.85rem',
+              color: isCompleted ? 'var(--success)' : 'var(--text-muted)',
+            }}
+          >
             {isCompleted ? 'Completed' : `${questions.length} Qs`}
           </span>
           {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </div>
 
-      {/* Smooth grid-based animation */}
       <div
         style={{
           display: 'grid',
@@ -151,15 +154,24 @@ useEffect(() => {
               </p>
             )}
 
-            <div className="flex flex-col gap-4 ">
+            <div className="flex flex-col gap-4">
               {questions.map((q, idx) => (
                 <div key={q.id} className="form-group mb-0" style={{ marginBottom: 0 }}>
-                  <label className="form-label" style={{ fontWeight: 600, marginBottom: '0.5rem',paddingLeft:'0.75rem' }}>
+                  <label
+                    className="form-label"
+                    style={{
+                      fontWeight: 600,
+                      marginBottom: '0.5rem',
+                      paddingLeft: '0.75rem',
+                    }}
+                  >
                     Q{idx + 1}. {q.question}
                   </label>
-                  <div style={{ display: 'flex', gap: '0.5rem',paddingLeft:'0.75rem' }}>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', paddingLeft: '0.75rem' }}>
                     {q.options.map((opt, optIdx) => {
                       const isSelected = answers[q.id] === opt;
+
                       return (
                         <button
                           key={optIdx}
@@ -168,8 +180,12 @@ useEffect(() => {
                           style={{
                             padding: '0.6rem 1rem',
                             borderRadius: '8px',
-                            border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--card-border)',
-                            backgroundColor: isSelected ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                            border: isSelected
+                              ? '2px solid var(--accent-primary)'
+                              : '1px solid var(--card-border)',
+                            backgroundColor: isSelected
+                              ? 'var(--accent-primary)'
+                              : 'var(--bg-secondary)',
                             color: isSelected ? 'white' : 'var(--text-primary)',
                             cursor: 'pointer',
                             fontWeight: isSelected ? 600 : 400,
@@ -187,7 +203,10 @@ useEffect(() => {
               ))}
             </div>
 
-            <div className="flex justify-end mt-4 pt-4" style={{ borderTop: '1px dashed var(--card-border)' }}>
+            <div
+              className="flex justify-end mt-4 pt-4"
+              style={{ borderTop: '1px dashed var(--card-border)' }}
+            >
               <button
                 className="btn btn-outline"
                 style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}
