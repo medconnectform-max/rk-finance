@@ -11,13 +11,6 @@ export default function GeneralDetailsPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
       <main className="app-container" style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', maxWidth: '800px', margin: '0 auto' }}>
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          className="btn btn-outline"
-          style={{ alignSelf: 'flex-start', marginBottom: '1.5rem' }}
-        >
-          <ArrowLeft size={18} /> Back to Dashboard
-        </button>
         <GeneralDetailsForm />
       </main>
     </div>

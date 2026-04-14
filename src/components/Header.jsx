@@ -23,7 +23,7 @@ export default function Header() {
       <div className="flex justify-between items-center" style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <Link to="/dashboard" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="flex items-center gap-2 cursor-pointer">
-            <div style={{ backgroundColor: 'var(--accent-primary)', padding: '0.5rem', borderRadius: '8px', color: 'white' }}>
+            <div style={{  padding: '0.5rem', borderRadius: '8px', color: 'white' }}>
              <img src="https://rkfinanceclass.com/wp-content/uploads/2023/06/RK-Finance-Classes-Logo-ed-1.png" alt="RKClasses" style={{ width: '100%', height: 'auto' }} />
             </div>
            

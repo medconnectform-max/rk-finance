@@ -9,6 +9,7 @@ import {
   getChapters,
   getQuestions,
 } from '../config/constants';
+import subjectFullName from '../config/Subject';
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 function getOptionScore(options, answer) {
@@ -74,9 +75,9 @@ const COLORS = {
 const QUESTION_CHARTS = [
   { id: 'q1', label: 'Video Lecture Status', color: '#6366f1' },
   { id: 'q2', label: 'Reading Status', color: '#10b981' },
-  { id: 'q3', label: 'QB Practice Status', color: '#f59e0b' },
   { id: 'q4', label: 'Revision Status', color: '#ef4444' },
   { id: 'q5', label: 'Test Taken Status', color: '#ef4444' },
+  { id: 'q3', label: 'QB Practice Status', color: '#f59e0b' },
 ];
 
 const SHORT_NAMES = {
@@ -205,7 +206,7 @@ function buildQuestionChartSVG(qId, qColor, isDark) {
     if (max > 0) {
       bars += `
         <text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" font-size="8" font-weight="700" fill="${barColor}">
-          ${count}/${max} (${percent}%)
+         ${percent}%
         </text>
       `;
     }
@@ -247,52 +248,90 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
   const headBg = isDark ? '#2d3748' : '#e2e8f0';
   const rowAlt = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
 
-  return SUBJECTS.map((subject) => {
+  return SUBJECTS.map((subject, subjectIndex) => {
     const chapters = getChapters(subject) || [];
 
     const rows = chapters.map((chapter, index) => {
-      const { yesCount, total, percent } = getChapterYesPercentage(subject, chapter);
-
-      const color =
-        percent === 100 ? '#22c55e' :
-        percent >= 70 ? '#3b82f6' :
-        percent >= 40 ? '#f59e0b' :
-        '#ef4444';
+      const { percent } = getChapterYesPercentage(subject, chapter);
+      const color = getPerformanceColor(percent);
 
       return `
         <tr style="background:${index % 2 === 0 ? 'transparent' : rowAlt};">
-          <td style="padding:10px;border:1px solid ${bdr};text-align:left;">${chapter }</td>
+          <td style="padding:10px;border:1px solid ${bdr};text-align:left;">
+            ${chapter}
+          </td>
           <td style="padding:10px;border:1px solid ${bdr};text-align:center;font-weight:700;color:${color};">
             ${percent}%
           </td>
-        
         </tr>
       `;
-    }).join('');
+    }, ).join('');
 
+ const extraRow = `
+  <tr style="background:${rowAlt};">
+    <td style="padding:10px;border:1px solid ${bdr};text-align:left;">
+      Premium QB completion Score 
+    </td>
+    <td style="padding:10px;border:1px solid ${bdr};text-align:center;">
+      ${localStorage.getItem(`trackpro_${subject}_premiumQuestionBank`) || '0'}
+    </td>
+  </tr>
+`;
+
+const finalRows = rows+extraRow
     return `
-      <div class="subject-table-block" style="margin-top:22px; page-break-inside: avoid; break-inside: avoid;">
-      
+      <div
+        class="subject-page"
+        style="
+          page-break-before:${subjectIndex === 0 ? 'auto' : 'always'};
+          break-before:${subjectIndex === 0 ? 'auto' : 'page'};
+          page-break-inside:avoid;
+          break-inside:avoid;
+          min-height:260mm;
+          padding-top:8mm;
+        "
+      >
+        <div
+          class="subject-table-block"
+          style="
+            margin-top:0;
+            page-break-inside:avoid;
+            break-inside:avoid;
+          "
+        >
+          <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
+            ${subjectFullName[subject]}
+          </h3>
 
-        <div style="overflow:hidden;border:1px solid ${bdr};border-radius:10px;background:${tableBg}; page-break-inside: avoid; break-inside: avoid;">
-          <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
-            <thead>
-              <tr style="background:${headBg};">
-                <th style="padding:10px;border:1px solid ${bdr};text-align:left;">${subject}</th>
-                <th style="padding:10px;border:1px solid ${bdr};text-align:center;">Score</th>
-            
-              </tr>
-            </thead>
-            <tbody>
-              ${rows || `
-                <tr>
-                  <td colspan="3" style="padding:12px;border:1px solid ${bdr};text-align:center;color:${txt2};">
-                    No chapter data available
-                  </td>
+          <div
+            style="
+              overflow:hidden;
+              border:1px solid ${bdr};
+              border-radius:10px;
+              background:${tableBg};
+              page-break-inside:avoid;
+              break-inside:avoid;
+            "
+          >
+            <table style="width:100%;border-collapse:collapse;font-size:0.88rem;">
+              <thead>
+                <tr style="background:${headBg};">
+                  <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Readings</th>
+                  <th style="padding:10px;border:1px solid ${bdr};text-align:center;">Score</th>
                 </tr>
-              `}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${finalRows               
+                   || `
+                  <tr>
+                    <td colspan="2" style="padding:12px;border:1px solid ${bdr};text-align:center;color:${txt2};">
+                      No chapter data available
+                    </td>
+                  </tr>
+                `}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
@@ -389,6 +428,76 @@ function getTimeRemaining(examMonthYear) {
   }
 }
 
+function buildPremiumQBChart(){
+  const pqbData = SUBJECTS.map((sub) => {
+    const premiumQBKey = `trackpro_${sub}_premiumQuestionBank`;
+    const premiumQBCount = localStorage.getItem(premiumQBKey) ? parseInt(localStorage.getItem(premiumQBKey)) : 0;
+    const thisChapterPremiumCount = PQBTOTAL[sub];
+    const percent = thisChapterPremiumCount > 0 ? Math.round((premiumQBCount / thisChapterPremiumCount) * 100) : 0;
+    
+    return { subject: sub, count: premiumQBCount, percent };
+  }
+  );
+  
+  const W = Math.max(460, SUBJECTS.length * 44);
+  const H = 130;
+  const barW = 26;
+  const gap = (W - 30 - barW * SUBJECTS.length) / (SUBJECTS.length + 1);
+  const textCol = '#718096';
+  const gridCol = 'rgba(0,0,0,0.06)';
+  const trackFill = '#e2e8f0';
+
+  let yLabels = '';
+  for (let i = 0; i <= 100; i += 20) {
+    const y = H - (i / 100) * H + 10;
+    yLabels += `<text x="18" y="${y + 3}" text-anchor="end" font-size="8" fill="${textCol}">${i}%</text>`;
+    yLabels += `<line x1="22" y1="${y}" x2="${W + 5}" y2="${y}" stroke="${gridCol}" stroke-width="0.5" stroke-dasharray="3,3"/>`;
+  }
+  
+  let bars = '';  
+  pqbData.forEach((data, idx) => {
+    const x = 25 + gap + idx * (barW + gap);
+    const barH = (data.percent / 100) * H;
+    const y = H - barH + 10;
+    const color = getPerformanceColor(data.percent);
+    
+    bars += `<rect x="${x}" y="10" width="${barW}" height="${H}" rx="4" fill="${trackFill}" opacity="0.5"/>`;
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}"/>`;
+    bars += `<text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" font-size="8" font-weight="700" fill="${color}">${data.percent}%</text>`;
+    
+    const label = SHORT_NAMES[data.subject] || data.subject;
+    const words = label.split(' ');
+    const line1 = words[0];
+    const line2 = words.slice(1).join(' ');
+
+    if (words.length > 1) {
+      bars += `
+        <text x="${x + barW / 2}" y="${H + 18}" text-anchor="middle" font-size="12px" font-weight="900" fill="${textCol}">
+          <tspan x="${x + barW / 2}" dy="0">${line1}</tspan>
+          <tspan x="${x + barW / 2}" dy="9">${line2}</tspan>
+        </text>
+      `;
+    }
+    else {
+      bars += `
+        <text x="${x + barW / 2}" y="${H + 22}" text-anchor="middle" font-size="12px" font-weight="900" fill="${textCol}">
+          ${label}
+        </text>
+      `;
+    }
+  });
+  
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W + 10} ${H + 35}">
+      ${yLabels}
+      ${bars}
+      <line x1="22" y1="${H + 10}" x2="${W + 5}" y2="${H + 10}" stroke="${gridCol}" stroke-width="1"/>
+      <line x1="22" y1="10" x2="22" y2="${H + 10}" stroke="${gridCol}" stroke-width="1"/>
+    </svg>
+  `;
+
+}
+
 
 
 
@@ -404,10 +513,11 @@ function buildReportHTML() {
   const timeLeft = getTimeRemaining(details.exam);
 
   const yesCounts = SUBJECTS.map((sub) => {
+    
     const chapters = getChapters(sub) || [];
     const counts = { q1: 0, q2: 0, q3: 0, q4: 0, q5: 0 };
-
     chapters.forEach((ch) => {
+      
       const key = `trackpro_${sub}_${ch.replace(/\s+/g, '')}`;
       try {
         const raw = localStorage.getItem(key);
@@ -422,6 +532,8 @@ function buildReportHTML() {
       } catch {}
     });
 
+   
+
     const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
     const premiumQBKey = `trackpro_${sub}_premiumQuestionBank`;
@@ -432,12 +544,13 @@ function buildReportHTML() {
     const toAdd = Math.round(((premiumQBCount/thisChapterPremiumCount) * chapters.length));
 
     console.log(toAdd, premiumQBCount, thisChapterPremiumCount, chapters.length)
+    
 
     
     return { subject: sub, total: totalCount+toAdd, max: chapters.length * 5  + chapters.length};
   });
 
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const isDark = false;
   const bg = isDark ? '#1a202c' : '#f0f4f8';
   const txt = isDark ? '#e2e8f0' : '#1a202c';
   const txt2 = isDark ? '#a0aec0' : '#4a5568';
@@ -518,16 +631,8 @@ function buildReportHTML() {
       </div>
 
       <div class="report-content">
-        <div class="report-header" style="text-align:center;margin-bottom:20px;">
-          <div style="margin-bottom:14px;">
-            <img
-              src="${logoUrl}"
-              alt="RKClasses"
-              style="width:220px;max-width:100%;height:auto;object-fit:contain;"
-            />
-          </div>
-
-          <h1 style="font-size:1.5rem;margin:0 0 4px 0;color:${accent};">📊 Student Progress Report</h1>
+       <div class="report-header" style="text-align:center;margin-bottom:20px;">
+          <h1 style="font-size:1.5rem;margin:0 0 4px 0;color:${accent};">${details.fullName} Progress report</h1>
 
           <p style="margin:0;font-size:0.85rem;color:${txt2};">
             Generated on ${new Date().toLocaleDateString('en-IN', {
@@ -548,30 +653,37 @@ function buildReportHTML() {
                 </p>
               ` : ''}
             </div>
-          ` : ''}
+          ` : ''} 
         </div>
 
         <div class="page-break-avoid">
-          <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">📊 Subject-wise Completion</h3>
+          <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">📊 Subject-wise Completion Status</h3>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             ${QUESTION_CHARTS.map((q) => {
               const chartBg = isDark ? `${q.color}15` : `${q.color}12`;
               return `
                 <div class="chart-card" style="padding:12px;border:1px solid ${bdr};border-radius:10px;background:${chartBg};">
                   <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:${txt};display:flex;align-items:center;gap:6px;">
-                    <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${q.color};"></span>
+                     
                     ${q.label}
                   </h4>
                   ${buildQuestionChartSVG(q.id, q.color, isDark)}
                 </div>
               `;
             }).join('')}
+
+               <div class="chart-card" style="padding:12px;border:1px solid ${bdr};border-radius:10px;background:#f59e0b12;">
+                  <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:${txt};display:flex;align-items:center;gap:6px;">
+                    Premium QB Practice Status
+                  </h4>
+                  ${buildPremiumQBChart()}
+                </div>
           </div>
         </div>
 
         <div class="summary-table-wrap" style="margin-top:20px;">
           <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
-            Subject Level Summary
+    Overall Subject Level Completion status
           </h3>
 
           
@@ -597,48 +709,47 @@ function buildReportHTML() {
     Subject Level Summary Table
   </h3>
 
-  <div
-    class="chart-card"
-    style="
-      padding:14px;
-      border:1px solid ${bdr};
-      border-radius:10px;
-      background:${cardBg};
-      overflow:hidden;
-    "
-  >
-    <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
-      <thead>
-        <tr style="background:${isDark ? '#111827' : '#f8fafc'};">
-          <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Subject</th>
-      
-          <th style="padding:10px;border:1px solid ${bdr};text-align:center;">Percentage</th>
-         
-        </tr>
-      </thead>
-      <tbody>
-        ${yesCounts.map((sub) => {
-          const percent = sub.max ? Math.round((sub.total / sub.max) * 100) : 0;
-          const color = getPerformanceColor(percent);
-          const status =
-            percent > 80 ? 'Excellent' :
-            percent >= 50 ? 'Average' :
-            'Needs Improvement';
+      <div
+        class="chart-card"
+        style="
+          padding:14px;
+          border:1px solid ${bdr};
+          border-radius:10px;
+          background:${cardBg};
+          overflow:hidden;
+        "
+      >
+<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+  <thead>
+    <tr style="background:${isDark ? '#111827' : '#f8fafc'};">
+      <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Subject</th>
+      ${yesCounts.map(sub => `
+        <th style="padding:10px;border:1px solid ${bdr};text-align:center;white-space:nowrap;">
+          ${sub.subject}
+        </th>
+      `).join('')}
+    </tr>
+  </thead>
 
-          return `
-            <tr>
-              <td style="padding:10px;border:1px solid ${bdr};">${sub.subject}</td>
-            
-              <td style="padding:10px;border:1px solid ${bdr};text-align:center;color:${color};font-weight:700;">
-                ${percent}%
-              </td>
-            
-            </tr>
-          `;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>
+  <tbody>
+    <tr>
+      <td style="padding:10px;border:1px solid ${bdr};font-weight:600;">Score</td>
+      ${yesCounts.map((sub) => {
+        const percent = sub.max ? Math.round((sub.total / sub.max) * 100) : 0;
+        const color = getPerformanceColor(percent);
+
+        return `
+          <td style="padding:10px;border:1px solid ${bdr};text-align:center;color:${color};font-weight:700;">
+            ${percent}%
+          </td>
+        `;
+      }).join('')}
+    </tr>
+  </tbody>
+</table>
+
+       
+      </div>
 </div>
         </div>
 
@@ -702,6 +813,11 @@ export default function TalkWithSirButton() {
 
   // ── Phase 1: Generate only, no sharing ──────────────────────────────
   const handleGenerate = async () => {
+    if(localStorage.getItem('generalDetails')===null){
+      alert('Please fill in your general details first!');
+     
+      return;
+    }
     let wrapper = null;
     try {
       setIsGenerating(true);
@@ -802,7 +918,7 @@ export default function TalkWithSirButton() {
         <p style={{ color: 'var(--text-secondary)', margin: '0 auto 1.5rem auto', maxWidth: '600px' }}>
           {pdfReady
             ? 'PDF is ready! Tap "Share PDF" to send it.'
-            : 'Click on "Send PDF to Sir" your PDF will be generated automatically and send automatically'}
+            : 'Click on "Send PDF to Sir" your PDF will be generated and sent automatically'}
         </p>
 
         {/* Step 1 — Generate */}

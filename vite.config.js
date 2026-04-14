@@ -14,7 +14,7 @@ export default defineConfig({
 
 
     allowedHosts: [
-      'added-analytical-sagem-nicole.trycloudflare.com'
+      'agrees-greatly-they-part.trycloudflare.com'
     ],
 
   }

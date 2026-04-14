@@ -3,11 +3,20 @@ import { getChapters } from '../config/constants';
 import ChapterAccordion from './ChapterAccordion';
 import { BookOpen, RefreshCw } from 'lucide-react';
 import PQBTOTAL from '../config/PQB';
+import { useNavigate } from 'react-router-dom';
 
 export default function SubjectForm({ subjectName }) {
   const chapters = getChapters(subjectName);
   const premiumQBKey = `trackpro_${subjectName}_premiumQuestionBank`;
   const forthis = PQBTOTAL[subjectName] ;
+  const navigate = useNavigate();
+ 
+  const keys = Object.keys(PQBTOTAL);
+
+const nextSubject =
+  keys.indexOf(subjectName) !== -1
+    ? keys[keys.indexOf(subjectName) + 1]
+    : null;
 
   const [premiumQBValue, setPremiumQBValue] = useState(() => {
     try {
@@ -42,13 +51,23 @@ export default function SubjectForm({ subjectName }) {
     return () => window.removeEventListener('openNextChapterAccordion', handleOpenNext);
   }, [subjectName, chapters]);
 
+  useEffect(() => {
+  try {
+    const stored = window.localStorage.getItem(premiumQBKey);
+    setPremiumQBValue(stored || '');
+  } catch {
+    setPremiumQBValue('0');
+  }
+}, [subjectName]);
+
   const handlePremiumQBChange = (e) => {
     const value = e.target.value;
-    if(value > forthis){
-      alert(`Value cannot exceed ${forthis} for ${subjectName}`);
-      
-      return;
-    }
+  if (value > forthis) {
+
+  input.value = "";
+  input.focus();
+  return;
+}
     setPremiumQBValue(value);
 
     try {
@@ -132,7 +151,7 @@ export default function SubjectForm({ subjectName }) {
             color: 'var(--text-primary)',
           }}
         >
-          Premium Question Bank Value
+        Prem QB questions practiced : {premiumQBValue === '' ? 'X' : premiumQBValue}/{forthis}
         </label>
 
         <input
@@ -155,7 +174,66 @@ export default function SubjectForm({ subjectName }) {
             fontSize: '0.95rem',
           }}
         />
-      </div>
+
+{nextSubject && (
+  <button
+    onClick={() =>
+      navigate(`/subject/${encodeURIComponent(nextSubject)}`)
+    }
+    style={{
+      marginTop: "0.8rem",
+      padding: "0.6rem 1rem",
+      borderRadius: "10px",
+      border: "1px solid var(--accent-primary)",
+      background: "var(--accent-primary)",
+      color: "#fff",
+      fontWeight: 600,
+      fontSize: "0.9rem",
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      boxShadow: "0 4px 10px rgba(0,0,0,0.08)"
+    }}
+    onMouseEnter={(e) => {
+      e.target.style.transform = "translateY(-1px)";
+      e.target.style.boxShadow = "0 6px 14px rgba(0,0,0,0.12)";
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.transform = "translateY(0)";
+      e.target.style.boxShadow = "0 4px 10px rgba(0,0,0,0.08)";
+    }}
+  >
+    Next Subject → {nextSubject}
+  </button>
+)}
+
+  <button
+    onClick={() => navigate('/dashboard')}
+    style={{
+      marginTop: "0.8rem",
+      padding: "0.6rem 1rem",
+      borderRadius: "10px",
+      border: "1px solid var(--success)",
+      background: "var(--success)",
+      color: "#fff",
+      fontWeight: 600,
+      fontSize: "0.9rem",
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      boxShadow: "0 4px 10px rgba(0,0,0,0.08)"
+    }}
+    onMouseEnter={(e) => {
+      e.target.style.transform = "translateY(-1px)";
+      e.target.style.boxShadow = "0 6px 14px rgba(0,0,0,0.12)";
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.transform = "translateY(0)";
+      e.target.style.boxShadow = "0 4px 10px rgba(0,0,0,0.08)";
+    }}
+  >
+    ✓ Submit & Go to Dashboard
+  </button>
+
+         </div>
     </div>
   );
 }

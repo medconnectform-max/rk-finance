@@ -1,11 +1,15 @@
 
  const EXAM_OPTIONS = [
-  'Apr 26',
+  'May 26',
+  'Aug 26',
   'Nov 26',
-  'Jan 27',
-  'Jun 27',
+  'Feb 27',
   'May 27',
+  'Aug 27',
+  'Nov 27'
 ];
 
 
 export default EXAM_OPTIONS;
+
+

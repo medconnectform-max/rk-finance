@@ -204,11 +204,26 @@ export default function ChapterAccordion({ subjectName, chapterName }) {
             </div>
 
             <div
-              className="flex justify-end mt-4 pt-4"
+              className="flex justify-end gap-2 mt-4 pt-4"
               style={{ borderTop: '1px dashed var(--card-border)' }}
             >
+                <button
+    className="btn btn-outline "
+    style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}
+    onClick={(e) => {
+      e.stopPropagation();
+      window.dispatchEvent(
+        new CustomEvent('openNextChapterAccordion', {
+          detail: { subjectName, chapterName },
+        })
+      );
+      closeAccordion();
+    }}
+  >
+    Next Reading →
+  </button>
               <button
-                className="btn btn-outline"
+                className="btn btn-outline "
                 style={{ fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}
                 onClick={(e) => {
                   e.stopPropagation();

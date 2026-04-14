@@ -1,14 +1,14 @@
 const PQBTOTAL ={
-   "Quants":130 ,
-   "ECO": 70,
-   "Cor Issue":90 ,
-   "FSA": 150,
-   "Equity": 200,
-   "FI": 100,
-   "Deri": 80,
-   "Alt Inv": 60,
-   "PM": 40,
-   "Ethics": 55
+   "Quants":90 ,
+   "ECO": 76,
+   "CI":67 ,
+   "FSA": 130,
+   "Equity": 154,
+   "FI": 106,
+   "DI": 65,
+   "AI": 64,
+   "PM": 100,
+   "Ethics": 148
 }
 
 export default PQBTOTAL;

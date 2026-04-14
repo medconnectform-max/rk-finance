@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import TalkWithSirButton from '../components/TalkWithSirButton';
 import { SUBJECTS, getChapters, getQuestions } from '../config/constants';
 import { BookOpen, ChevronRight, User, CheckCircle2 } from 'lucide-react';
+import subjectFullName from '../config/Subject';
 
 function useChapterStats() {
   const [stats, setStats] = useState({});
@@ -60,7 +61,7 @@ export default function Dashboard() {
       <main className="app-container" style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="flex justify-between items-center mb-6" style={{ flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.8rem', color: 'var(--text-primary)' }}>Student Dashboard</h2>
+            <h2 style={{ fontSize: '1.8rem', color: 'var(--text-primary)' }}>L1 Student Tracker Dashboard</h2>
             <p style={{ color: 'var(--text-secondary)' }}>Track your academic progress across all subjects</p>
           </div>
           <button
@@ -101,7 +102,7 @@ export default function Dashboard() {
           <div className="glass-card mb-6">
             <div className="flex items-center gap-2 mb-4 border-b pb-2" style={{ borderBottom: '1px solid var(--card-border)' }}>
               <BookOpen size={20} color="var(--accent-primary)" />
-              <h3 style={{ margin: 0 }}>Subject Workbooks</h3>
+              <h3 style={{ margin: 0 }}>Subject</h3>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
               {SUBJECTS.map(subject => {
@@ -127,7 +128,7 @@ export default function Dashboard() {
                     onClick={() => navigate(`/subject/${encodeURIComponent(subject)}`)}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
-                      <span>{subject}</span>
+                      <span>{subjectFullName[subject]}</span>
                       <span style={{
                         fontSize: '0.75rem',
                         color: allDone ? 'var(--success)' : 'var(--text-muted)',
