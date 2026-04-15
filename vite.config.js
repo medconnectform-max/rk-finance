@@ -14,7 +14,7 @@ export default defineConfig({
 
 
     allowedHosts: [
-      'agrees-greatly-they-part.trycloudflare.com'
+      
     ],
 
   }

@@ -88,6 +88,8 @@ const SHORT_NAMES = {
   'Alt Inv': 'Alt Inv',
 };
 
+const LOGO_URL = 'https://res.cloudinary.com/dzl0crskt/image/upload/v1774970092/RK-Finance-Classes-Logo-ed-1_eauuxw.png';
+
 // ─── SVG Chart Builders ────────────────────────────────────────────────
 function buildChartSVG(subjectName, isDark) {
   const chapters = getChapters(subjectName);
@@ -139,10 +141,11 @@ function buildChartSVG(subjectName, isDark) {
     </svg>
   `;
 }
+
 function getPerformanceColor(percent) {
-  if (percent > 80) return '#22c55e';   // green
-  if (percent >= 50) return '#f59e0b';  // yellowish orange
-  return '#f472b6';                     // pinkish red
+  if (percent > 80) return '#16a34a';   // rich green
+  if (percent >= 50) return '#eab308';  // warm yellow
+  return '#dc2626';                     // strong red
 }
 
 function buildQuestionChartSVG(qId, qColor, isDark) {
@@ -166,7 +169,6 @@ function buildQuestionChartSVG(qId, qColor, isDark) {
 
   const maxCounts = SUBJECTS.map((sub) => (getChapters(sub) || []).length);
 
-  // percentages instead of raw counts
   const percentages = yesCounts.map((count, idx) => {
     const max = maxCounts[idx] || 0;
     if (!max) return 0;
@@ -265,20 +267,21 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
           </td>
         </tr>
       `;
-    }, ).join('');
+    }).join('');
 
- const extraRow = `
-  <tr style="background:${rowAlt};">
-    <td style="padding:10px;border:1px solid ${bdr};text-align:left;">
-      Premium QB completion Score 
-    </td>
-    <td style="padding:10px;border:1px solid ${bdr};text-align:center;">
-      ${localStorage.getItem(`trackpro_${subject}_premiumQuestionBank`) || '0'}
-    </td>
-  </tr>
-`;
+    const extraRow = `
+      <tr style="background:${rowAlt};">
+        <td style="padding:10px;border:1px solid ${bdr};text-align:left;">
+          Premium QB completion Score 
+        </td>
+        <td style="padding:10px;border:1px solid ${bdr};text-align:center;">
+          ${localStorage.getItem(`trackpro_${subject}_premiumQuestionBank`) || '0'}
+        </td>
+      </tr>
+    `;
 
-const finalRows = rows+extraRow
+    const finalRows = rows + extraRow;
+
     return `
       <div
         class="subject-page"
@@ -321,8 +324,7 @@ const finalRows = rows+extraRow
                 </tr>
               </thead>
               <tbody>
-                ${finalRows               
-                   || `
+                ${finalRows || `
                   <tr>
                     <td colspan="2" style="padding:12px;border:1px solid ${bdr};text-align:center;color:${txt2};">
                       No chapter data available
@@ -428,17 +430,16 @@ function getTimeRemaining(examMonthYear) {
   }
 }
 
-function buildPremiumQBChart(){
+function buildPremiumQBChart() {
   const pqbData = SUBJECTS.map((sub) => {
     const premiumQBKey = `trackpro_${sub}_premiumQuestionBank`;
     const premiumQBCount = localStorage.getItem(premiumQBKey) ? parseInt(localStorage.getItem(premiumQBKey)) : 0;
     const thisChapterPremiumCount = PQBTOTAL[sub];
     const percent = thisChapterPremiumCount > 0 ? Math.round((premiumQBCount / thisChapterPremiumCount) * 100) : 0;
-    
+
     return { subject: sub, count: premiumQBCount, percent };
-  }
-  );
-  
+  });
+
   const W = Math.max(460, SUBJECTS.length * 44);
   const H = 130;
   const barW = 26;
@@ -453,18 +454,18 @@ function buildPremiumQBChart(){
     yLabels += `<text x="18" y="${y + 3}" text-anchor="end" font-size="8" fill="${textCol}">${i}%</text>`;
     yLabels += `<line x1="22" y1="${y}" x2="${W + 5}" y2="${y}" stroke="${gridCol}" stroke-width="0.5" stroke-dasharray="3,3"/>`;
   }
-  
-  let bars = '';  
+
+  let bars = '';
   pqbData.forEach((data, idx) => {
     const x = 25 + gap + idx * (barW + gap);
     const barH = (data.percent / 100) * H;
     const y = H - barH + 10;
     const color = getPerformanceColor(data.percent);
-    
+
     bars += `<rect x="${x}" y="10" width="${barW}" height="${H}" rx="4" fill="${trackFill}" opacity="0.5"/>`;
     bars += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}"/>`;
     bars += `<text x="${x + barW / 2}" y="${y - 4}" text-anchor="middle" font-size="8" font-weight="700" fill="${color}">${data.percent}%</text>`;
-    
+
     const label = SHORT_NAMES[data.subject] || data.subject;
     const words = label.split(' ');
     const line1 = words[0];
@@ -477,8 +478,7 @@ function buildPremiumQBChart(){
           <tspan x="${x + barW / 2}" dy="9">${line2}</tspan>
         </text>
       `;
-    }
-    else {
+    } else {
       bars += `
         <text x="${x + barW / 2}" y="${H + 22}" text-anchor="middle" font-size="12px" font-weight="900" fill="${textCol}">
           ${label}
@@ -486,7 +486,7 @@ function buildPremiumQBChart(){
       `;
     }
   });
-  
+
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W + 10} ${H + 35}">
       ${yLabels}
@@ -495,13 +495,7 @@ function buildPremiumQBChart(){
       <line x1="22" y1="10" x2="22" y2="${H + 10}" stroke="${gridCol}" stroke-width="1"/>
     </svg>
   `;
-
 }
-
-
-
-
-
 
 // ─── Build full report HTML ────────────────────────────────────────────
 function buildReportHTML() {
@@ -513,11 +507,9 @@ function buildReportHTML() {
   const timeLeft = getTimeRemaining(details.exam);
 
   const yesCounts = SUBJECTS.map((sub) => {
-    
     const chapters = getChapters(sub) || [];
     const counts = { q1: 0, q2: 0, q3: 0, q4: 0, q5: 0 };
     chapters.forEach((ch) => {
-      
       const key = `trackpro_${sub}_${ch.replace(/\s+/g, '')}`;
       try {
         const raw = localStorage.getItem(key);
@@ -532,22 +524,17 @@ function buildReportHTML() {
       } catch {}
     });
 
-   
-
     const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
     const premiumQBKey = `trackpro_${sub}_premiumQuestionBank`;
     const premiumQBCount = localStorage.getItem(premiumQBKey) ? parseInt(localStorage.getItem(premiumQBKey)) : 0;
-    // const totalWithPremium = totalCount + premiumQBCount;
 
     const thisChapterPremiumCount = PQBTOTAL[sub];
-    const toAdd = Math.round(((premiumQBCount/thisChapterPremiumCount) * chapters.length));
+    const toAdd = Math.round(((premiumQBCount / thisChapterPremiumCount) * chapters.length));
 
-    console.log(toAdd, premiumQBCount, thisChapterPremiumCount, chapters.length)
-    
+    console.log(toAdd, premiumQBCount, thisChapterPremiumCount, chapters.length);
 
-    
-    return { subject: sub, total: totalCount+toAdd, max: chapters.length * 5  + chapters.length};
+    return { subject: sub, total: totalCount + toAdd, max: chapters.length * 5 + chapters.length };
   });
 
   const isDark = false;
@@ -557,10 +544,11 @@ function buildReportHTML() {
   const accent = '#3182ce';
   const bdr = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
   const cardBg = isDark ? '#1f2937' : '#ffffff';
-  const logoUrl ='https://res.cloudinary.com/dzl0crskt/image/upload/v1774970092/RK-Finance-Classes-Logo-ed-1_eauuxw.png'
+  const logoUrl = LOGO_URL;
+  const nameColor = 'red';
 
   return `
-    <div style="font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:${bg};padding:28px;color:${txt};width:800px;">
+    <div style="font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:${bg};padding:28px;color:${txt};width:800px;position:relative;">
       <style>
         * { box-sizing: border-box; }
 
@@ -630,31 +618,83 @@ function buildReportHTML() {
         />
       </div>
 
-      <div class="report-content">
-       <div class="report-header" style="text-align:center;margin-bottom:20px;">
-          <h1 style="font-size:1.5rem;margin:0 0 4px 0;color:${accent};">${details.fullName} Progress report</h1>
+<div class="report-content">
+  <div class="report-header" style="
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:20px;
+  ">
 
-          <p style="margin:0;font-size:0.85rem;color:${txt2};">
-            Generated on ${new Date().toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </p>
+    <!-- LEFT: BIG PHOTO -->
+    ${details.photo ? `
+      <div>
+        <img 
+          src="${details.photo}" 
+          alt="Profile"
+          style="
+            width:200px;
+            height:200px;
+           border-radius:6px;
+            object-fit:cover;
+           
+          "
+        />
+      </div>
+    ` : '<div style="width:100px;"></div>'}
 
-          ${details.exam ? `
-            <div style="margin:10px auto 0 auto;max-width:320px;padding:10px 14px;border-radius:12px;background:${isDark ? 'rgba(49,130,206,0.12)' : 'rgba(49,130,206,0.08)'};border:1px solid ${isDark ? 'rgba(49,130,206,0.28)' : 'rgba(49,130,206,0.20)'};">
-              <p style="margin:0;font-size:0.9rem;font-weight:700;color:${txt};">
-                Exam: <span style="color:${accent};">${details.exam}</span>
-              </p>
-              ${timeLeft ? `
-                <p style="margin:4px 0 0 0;font-size:0.82rem;color:${txt2};">
-                  ⏳ ${timeLeft}
-                </p>
-              ` : ''}
-            </div>
-          ` : ''} 
-        </div>
+    <!-- CENTER: NAME + DATE -->
+    <div style="flex:1;text-align:left;">
+      <h1 style="
+        font-size:1.5rem;
+        margin:0 0 6px 0;
+        color:${nameColor};
+      ">
+        ${details.fullName}
+      </h1>
+
+      <p style="margin:0;font-size:0.9rem;color:${txt2};">
+        Progress Report
+      </p>
+
+      <p style="margin:4px 0 0 0;font-size:0.8rem;color:${txt2};">
+        Generated on ${new Date().toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })}
+      </p>
+    </div>
+
+    <!-- RIGHT: EXAM + TIME -->
+    <div style="text-align:right;min-width:140px;">
+      
+      ${details.exam ? `
+        <p style="
+          margin:0;
+          font-size:0.95rem;
+          font-weight:700;
+          color:${txt2};
+        ">
+        L1 ${details.exam}
+        </p>
+      ` : ''}
+
+      ${timeLeft ? `
+        <p style="
+          margin:6px 0 0 0;
+          font-size:0.85rem;
+          color:${nameColor};
+        ">
+          ⏳ ${timeLeft}
+        </p>
+      ` : ''}
+
+    </div>
+
+  </div>
+</div>
 
         <div class="page-break-avoid">
           <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">📊 Subject-wise Completion Status</h3>
@@ -664,7 +704,6 @@ function buildReportHTML() {
               return `
                 <div class="chart-card" style="padding:12px;border:1px solid ${bdr};border-radius:10px;background:${chartBg};">
                   <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:${txt};display:flex;align-items:center;gap:6px;">
-                     
                     ${q.label}
                   </h4>
                   ${buildQuestionChartSVG(q.id, q.color, isDark)}
@@ -672,21 +711,20 @@ function buildReportHTML() {
               `;
             }).join('')}
 
-               <div class="chart-card" style="padding:12px;border:1px solid ${bdr};border-radius:10px;background:#f59e0b12;">
-                  <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:${txt};display:flex;align-items:center;gap:6px;">
-                    Premium QB Practice Status
-                  </h4>
-                  ${buildPremiumQBChart()}
-                </div>
+            <div class="chart-card" style="padding:12px;border:1px solid ${bdr};border-radius:10px;background:#f59e0b12;">
+              <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:${txt};display:flex;align-items:center;gap:6px;">
+                Premium QB Practice Status
+              </h4>
+              ${buildPremiumQBChart()}
+            </div>
           </div>
         </div>
 
         <div class="summary-table-wrap" style="margin-top:20px;">
           <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
-    Overall Subject Level Completion status
+            Overall Subject Level Completion status
           </h3>
 
-          
           <div
             class="chart-card"
             style="
@@ -702,55 +740,48 @@ function buildReportHTML() {
             </div>
           </div>
 
+          <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
+            Subject Level Summary Table
+          </h3>
 
+          <div
+            class="chart-card"
+            style="
+              padding:14px;
+              border:1px solid ${bdr};
+              border-radius:10px;
+              background:${cardBg};
+              overflow:hidden;
+            "
+          >
+            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+              <thead>
+                <tr style="background:${isDark ? '#111827' : '#f8fafc'};">
+                  <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Subject</th>
+                  ${yesCounts.map(sub => `
+                    <th style="padding:10px;border:1px solid ${bdr};text-align:center;white-space:nowrap;">
+                      ${sub.subject}
+                    </th>
+                  `).join('')}
+                </tr>
+              </thead>
 
-
-  <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
-    Subject Level Summary Table
-  </h3>
-
-      <div
-        class="chart-card"
-        style="
-          padding:14px;
-          border:1px solid ${bdr};
-          border-radius:10px;
-          background:${cardBg};
-          overflow:hidden;
-        "
-      >
-<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
-  <thead>
-    <tr style="background:${isDark ? '#111827' : '#f8fafc'};">
-      <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Subject</th>
-      ${yesCounts.map(sub => `
-        <th style="padding:10px;border:1px solid ${bdr};text-align:center;white-space:nowrap;">
-          ${sub.subject}
-        </th>
-      `).join('')}
-    </tr>
-  </thead>
-
-  <tbody>
-    <tr>
-      <td style="padding:10px;border:1px solid ${bdr};font-weight:600;">Score</td>
-      ${yesCounts.map((sub) => {
-        const percent = sub.max ? Math.round((sub.total / sub.max) * 100) : 0;
-        const color = getPerformanceColor(percent);
-
-        return `
-          <td style="padding:10px;border:1px solid ${bdr};text-align:center;color:${color};font-weight:700;">
-            ${percent}%
-          </td>
-        `;
-      }).join('')}
-    </tr>
-  </tbody>
-</table>
-
-       
-      </div>
-</div>
+              <tbody>
+                <tr>
+                  <td style="padding:10px;border:1px solid ${bdr};font-weight:600;">Score</td>
+                  ${yesCounts.map((sub) => {
+                    const percent = sub.max ? Math.round((sub.total / sub.max) * 100) : 0;
+                    const color = getPerformanceColor(percent);
+                    return `
+                      <td style="padding:10px;border:1px solid ${bdr};text-align:center;color:${color};font-weight:700;">
+                        ${percent}%
+                      </td>
+                    `;
+                  }).join('')}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         ${buildSubjectChapterTables(isDark, txt2, accent, bdr)}
@@ -759,16 +790,62 @@ function buildReportHTML() {
   `;
 }
 
+// ─── Watermark stamper — draws logo centered on every PDF page ─────────
+async function stampWatermarkOnAllPages(pdf) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        // Draw to a canvas at reduced opacity
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.globalAlpha = 0.08; // 8% opacity — ghostly watermark
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+
+        const totalPages = pdf.internal.getNumberOfPages();
+        const pageW = pdf.internal.pageSize.getWidth();   // mm
+        const pageH = pdf.internal.pageSize.getHeight();  // mm
+
+        // Watermark size: 60mm wide, maintain aspect ratio
+        const wmW = 60;
+        const aspectRatio = img.naturalHeight / img.naturalWidth;
+        const wmH = wmW * aspectRatio;
+
+        // Centre on page
+        const x = (pageW - wmW) / 2;
+        const y = (pageH - wmH) / 2;
+
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.addImage(dataUrl, 'PNG', x, y, wmW, wmH);
+        }
+
+        resolve(pdf);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    img.onerror = () => reject(new Error('Failed to load watermark image'));
+    img.src = LOGO_URL;
+  });
+}
+
 // ─── PDF Generator ─────────────────────────────────────────────────────
 async function createPdfFromElement(element) {
   let name = localStorage.getItem('generalDetails') || '';
   let fullName = name ? JSON.parse(name).fullName || '' : 'Progress';
   let number = name ? JSON.parse(name).mobile : '';
-  console.log(name)
+  console.log(name);
   const fileName = `${fullName}_${number}_${new Date().toISOString().split('T')[0]}.pdf`;
 
   const opt = {
-    margin: [1,1,1,1],
+    margin: [1, 1, 1, 1],
     filename: fileName,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
@@ -788,9 +865,15 @@ async function createPdfFromElement(element) {
     },
   };
 
+  // Step 1: render HTML → jsPDF object (do NOT auto-save yet)
   const worker = html2pdf().set(opt).from(element);
+  const pdf = await worker.toPdf().get('pdf');
 
-  const pdfBlob = await worker.outputPdf('blob');
+  // Step 2: stamp watermark on every page
+  await stampWatermarkOnAllPages(pdf);
+
+  // Step 3: output as blob
+  const pdfBlob = pdf.output('blob');
   const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
   const pdfUrl = URL.createObjectURL(pdfBlob);
 
@@ -805,7 +888,7 @@ async function createPdfFromElement(element) {
 // ─── Component ─────────────────────────────────────────────────────────
 export default function TalkWithSirButton() {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [pdfFile, setPdfFile] = useState(null);   // ← store the File object
+  const [pdfFile, setPdfFile] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfFileName, setPdfFileName] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -813,9 +896,8 @@ export default function TalkWithSirButton() {
 
   // ── Phase 1: Generate only, no sharing ──────────────────────────────
   const handleGenerate = async () => {
-    if(localStorage.getItem('generalDetails')===null){
+    if (localStorage.getItem('generalDetails') === null) {
       alert('Please fill in your general details first!');
-     
       return;
     }
     let wrapper = null;
@@ -864,14 +946,12 @@ export default function TalkWithSirButton() {
       navigator.canShare({ files: [pdfFile] });
 
     if (canShare) {
-      // navigator.share() is called SYNCHRONOUSLY inside this click handler
-      // No awaits before this point — gesture context is intact
       navigator.share({
         title: 'Student Progress Report',
         text: 'Please find my progress report attached.',
         files: [pdfFile],
       }).catch((err) => {
-        if (err?.name === 'AbortError') return; // user dismissed — fine
+        if (err?.name === 'AbortError') return;
         setShareError(
           'Sharing failed. Download the PDF and attach it manually in WhatsApp.'
         );
@@ -938,21 +1018,20 @@ export default function TalkWithSirButton() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
-
           {isGenerating ? (
-  <><Loader2 className="animate-spin" /> Generating…</>
-) : pdfReady ? (
-  <><FileText /> ✓ PDF Ready — Regenerate</>
-) : (
-  <><MessageCircle /> Send PDF to Sir</>
-)}
+            <><Loader2 className="animate-spin" /> Generating…</>
+          ) : pdfReady ? (
+            <><FileText /> ✓ PDF Ready — Regenerate</>
+          ) : (
+            <><MessageCircle /> Send PDF to Sir</>
+          )}
         </button>
 
         {/* Step 2 — Share (only shown when PDF exists) */}
         {pdfReady && (
           <button
             className="btn"
-            onClick={handleShare}   // ← synchronous, no async before navigator.share
+            onClick={handleShare}
             style={{
               maxWidth: 400, margin: '0 auto', width: '100%',
               padding: '1rem', fontSize: '1.1rem',
@@ -967,7 +1046,7 @@ export default function TalkWithSirButton() {
         )}
       </div>
 
-      {/* Fallback modal — same as before */}
+      {/* Fallback modal */}
       {isOpen && (
         <div className="modal-backdrop" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -978,3 +1057,41 @@ export default function TalkWithSirButton() {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+//changed rpeort-content 
+//  <div class="report-content">
+//         <div class="report-header" style="text-align:center;margin-bottom:20px;">
+//           <h1 style="font-size:1.5rem;margin:0 0 4px 0;color:${nameColor};">${details.fullName} Progress report</h1>
+
+//           <p style="margin:0;font-size:0.85rem;color:${txt2};">
+//             Generated on ${new Date().toLocaleDateString('en-IN', {
+//               day: 'numeric',
+//               month: 'long',
+//               year: 'numeric',
+//             })}
+//           </p>
+
+//           ${details.exam ? `
+//             <div style="margin:10px auto 0 auto;max-width:320px;padding:10px 14px;border-radius:12px;background:${isDark ? 'rgba(49,130,206,0.12)' : 'rgba(49,130,206,0.08)'};border:1px solid ${isDark ? 'rgba(49,130,206,0.28)' : 'rgba(49,130,206,0.20)'};">
+//               <p style="margin:0;font-size:0.9rem;font-weight:700;color:${txt};">
+//                 L1 <span style="color:${nameColor};">${details.exam}</span>
+//               </p>
+//               ${timeLeft ? `
+//                 <p style="margin:4px 0 0 0;font-size:0.82rem;color:${txt2};">
+//                   ⏳ ${timeLeft}
+//                 </p>
+//               ` : ''}
+//             </div>
+//           ` : ''}
+//         </div>
