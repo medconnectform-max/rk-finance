@@ -12,7 +12,8 @@ export default function GeneralDetailsForm() {
     uniqueId: '',
     mobile: '',
     exam: '',
-    photo: '', // 👈 added
+    photo: '', 
+     prepStartDate: '',
   });
 
   const handleChange = (e) => {
@@ -70,7 +71,8 @@ export default function GeneralDetailsForm() {
         uniqueId: '',
         mobile: '',
         exam: '',
-        photo: '', // 👈 reset image too
+        photo: '',
+         prepStartDate: '',
       });
     }
   };
@@ -160,6 +162,22 @@ export default function GeneralDetailsForm() {
             ))}
           </select>
         </div>
+
+        <div className="form-group">
+  <label className="form-label flex items-center gap-1 mb-2">
+    <Calendar size={14} />
+    Prep Start Date *
+  </label>
+
+  <input
+    type="date"
+    name="prepStartDate"
+    value={details.prepStartDate}
+    onChange={handleChange}
+    className="form-input w-full"
+    required
+  />
+</div>
 
         {/* 📸 Photo Upload */}
         <div className="form-group">

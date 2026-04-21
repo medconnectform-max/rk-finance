@@ -89,6 +89,7 @@ const SHORT_NAMES = {
 };
 
 const LOGO_URL = 'https://res.cloudinary.com/dzl0crskt/image/upload/v1774970092/RK-Finance-Classes-Logo-ed-1_eauuxw.png';
+const WATER_MARK = 'https://res.cloudinary.com/dzl0crskt/image/upload/v1776785684/image_bb9k5b.png'
 
 // ─── SVG Chart Builders ────────────────────────────────────────────────
 function buildChartSVG(subjectName, isDark) {
@@ -143,7 +144,7 @@ function buildChartSVG(subjectName, isDark) {
 }
 
 function getPerformanceColor(percent) {
-  if (percent > 80) return '#16a34a';   // rich green
+  if (percent >=80) return '#16a34a';   // rich green
   if (percent >= 50) return '#eab308';  // warm yellow
   return '#dc2626';                     // strong red
 }
@@ -651,20 +652,18 @@ function buildReportHTML() {
         margin:0 0 6px 0;
         color:${nameColor};
       ">
-        ${details.fullName}
+        ${details.fullName} Progress Tracker
       </h1>
 
-      <p style="margin:0;font-size:0.9rem;color:${txt2};">
-        Progress Report
-      </p>
+     
 
-      <p style="margin:4px 0 0 0;font-size:0.8rem;color:${txt2};">
-        Generated on ${new Date().toLocaleDateString('en-IN', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })}
-      </p>
+    <p style="margin:4px 0 0 0;font-size:0.8rem;color:${txt2};font-weight:bold;">
+  Generated on ${new Date().toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })}
+</p>
     </div>
 
     <!-- RIGHT: EXAM + TIME -->
@@ -690,8 +689,25 @@ function buildReportHTML() {
           ⏳ ${timeLeft}
         </p>
       ` : ''}
+      ${details.prepStartDate ? `
+  <p style="
+    margin:6px 0 0 0;
+    font-size:0.95rem;
+    color:blue;
+    font-weight:bold;
+
+  ">
+    Prep Start: ${new Date(details.prepStartDate).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })}
+  </p>
+` : ''}
 
     </div>
+
+    
 
   </div>
 </div>
@@ -721,24 +737,7 @@ function buildReportHTML() {
         </div>
 
         <div class="summary-table-wrap" style="margin-top:20px;">
-          <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
-            Overall Subject Level Completion status
-          </h3>
-
-          <div
-            class="chart-card"
-            style="
-              padding:14px;
-              border:1px solid ${bdr};
-              border-radius:10px;
-              background:${cardBg};
-            "
-          >
-            ${buildSubjectSummaryChartSVG(yesCounts, isDark)}
-            <div style="text-align:center;font-size:0.72rem;color:${txt2};margin-top:4px;">
-              Overall subject score in percentage
-            </div>
-          </div>
+         
 
           <h3 style="margin:0 0 12px 0;font-size:1.1rem;color:${accent};">
             Subject Level Summary Table
@@ -798,25 +797,26 @@ async function stampWatermarkOnAllPages(pdf) {
 
     img.onload = () => {
       try {
-        // Draw to a canvas at reduced opacity
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
+
         const ctx = canvas.getContext('2d');
-        ctx.globalAlpha = 0.08; // 8% opacity — ghostly watermark
+
+        // increase visibility
+        ctx.globalAlpha = 0.5;
         ctx.drawImage(img, 0, 0);
+
         const dataUrl = canvas.toDataURL('image/png');
 
         const totalPages = pdf.internal.getNumberOfPages();
-        const pageW = pdf.internal.pageSize.getWidth();   // mm
-        const pageH = pdf.internal.pageSize.getHeight();  // mm
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
 
-        // Watermark size: 60mm wide, maintain aspect ratio
-        const wmW = 60;
+        const wmW = 120;
         const aspectRatio = img.naturalHeight / img.naturalWidth;
         const wmH = wmW * aspectRatio;
 
-        // Centre on page
         const x = (pageW - wmW) / 2;
         const y = (pageH - wmH) / 2;
 
@@ -832,7 +832,7 @@ async function stampWatermarkOnAllPages(pdf) {
     };
 
     img.onerror = () => reject(new Error('Failed to load watermark image'));
-    img.src = LOGO_URL;
+    img.src = WATER_MARK;
   });
 }
 

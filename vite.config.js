@@ -14,7 +14,8 @@ export default defineConfig({
 
 
     allowedHosts: [
-      
+      'particularly-chargers-creativity-tires.trycloudflare.com',
+      'changelog-demand-vitamins-stranger.trycloudflare.com'
     ],
 
   }
