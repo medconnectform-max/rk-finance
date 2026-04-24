@@ -274,6 +274,7 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
 
     const rows = chapters.map((chapter, index) => {
       const { percent } = getChapterYesPercentage(subject, chapter);
+
       const color = getPerformanceColor(percent);
 
       return `
@@ -282,22 +283,29 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
             ${chapter}
           </td>
           <td style="padding:10px;border:1px solid ${bdr};text-align:center;font-weight:700;color:${color};">
-            ${percent}%
+            ${percent /20}/5
           </td>
         </tr>
       `;
     }).join('');
 
-    const extraRow = `
-      <tr style="background:${rowAlt};">
-        <td style="padding:10px;border:1px solid ${bdr};text-align:left;">
-          Premium QB completion Score 
-        </td>
-        <td style="padding:10px;border:1px solid ${bdr};text-align:center;">
-          ${localStorage.getItem(`trackpro_${subject}_premiumQuestionBank`) || '0'}
-        </td>
-      </tr>
-    `;
+ const PQBdone = Number(
+  localStorage.getItem(`trackpro_${subject}_premiumQuestionBank`) || 0
+);
+
+const PQBpercentage = (PQBdone / PQBTOTAL[subject]) * 100;
+const PQBcolor = getPerformanceColor(PQBpercentage);
+
+const extraRow = `
+  <tr style="background:${rowAlt};">
+    <td style="padding:10px;border:1px solid ${bdr};text-align:left;">
+      Premium QB completion progress
+    </td>
+    <td style="padding:10px;border:1px solid ${bdr};text-align:center;color:${PQBcolor};">
+      ${PQBdone} / ${PQBTOTAL[subject]}
+    </td>
+  </tr>
+`;
 
     const finalRows = rows + extraRow;
 
@@ -339,7 +347,7 @@ function buildSubjectChapterTables(isDark, txt2, accent, bdr) {
               <thead>
                 <tr style="background:${headBg};">
                   <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Readings</th>
-                  <th style="padding:10px;border:1px solid ${bdr};text-align:center;">Score</th>
+                  <th style="padding:10px;border:1px solid ${bdr};text-align:center;">PROGRESS</th>
                 </tr>
               </thead>
               <tbody>
@@ -929,10 +937,28 @@ export default function TalkWithSirButton() {
 
   // ── Phase 1: Generate only, no sharing ──────────────────────────────
   const handleGenerate = async () => {
-    if (localStorage.getItem('generalDetails') === null) {
-      alert('Please fill in your general details first!');
-      return;
-    }
+   
+const generalDetails = localStorage.getItem('generalDetails');
+
+if (generalDetails === null) {
+  alert('Please fill in your general details first!');
+  return;
+}
+
+const details = JSON.parse(generalDetails);
+
+// Check required fields (photo is optional)
+if (
+  !details.fullName ||
+  !details.mobile ||
+  !details.exam ||
+  !details.prepStartDate
+) {
+  alert('Please complete all required general details first!');
+  return;
+}
+
+
     let wrapper = null;
     try {
       setIsGenerating(true);
