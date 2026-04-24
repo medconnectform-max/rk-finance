@@ -63,7 +63,19 @@ function getChapterYesPercentage(subjectName, chapterName) {
     percent: Math.round((yesCount / questions.length) * 100),
   };
 }
+function getPremonth(date) {
+  // input: "2026-04-08"
 
+  const [year, month] = date.split("-");
+
+  const monthNames = [
+    "January", "February", "March", "April",
+    "May", "June", "July", "August",
+    "September", "October", "November", "December"
+  ];
+
+  return `${monthNames[parseInt(month, 10) - 1]} ${year}`;
+}
 // ─── Constants ─────────────────────────────────────────────────────────
 const COLORS = {
   Physics: '#6366f1',
@@ -89,7 +101,7 @@ const SHORT_NAMES = {
 };
 
 const LOGO_URL = 'https://res.cloudinary.com/dzl0crskt/image/upload/v1774970092/RK-Finance-Classes-Logo-ed-1_eauuxw.png';
-const WATER_MARK = 'https://res.cloudinary.com/dzl0crskt/image/upload/v1776785684/image_bb9k5b.png'
+const WATER_MARK = 'https://res.cloudinary.com/dzl0crskt/image/upload/v1776862972/WhatsApp_Image_2026-04-22_at_6.13.09_PM_-_Edited_yjxvzk.png'
 
 // ─── SVG Chart Builders ────────────────────────────────────────────────
 function buildChartSVG(subjectName, isDark) {
@@ -144,9 +156,15 @@ function buildChartSVG(subjectName, isDark) {
 }
 
 function getPerformanceColor(percent) {
-  if (percent >=80) return '#16a34a';   // rich green
-  if (percent >= 50) return '#eab308';  // warm yellow
-  return '#dc2626';                     // strong red
+if (percent >= 80) return '#22c55e';   // green
+  if (percent >= 50) return '#f59e0b';  // yellowish orange
+  return '#ad1750';  
+}
+
+function isInCompletedInClass(sub) {
+  const all = JSON.parse(localStorage.getItem("completedInClass")) || [];
+
+  return all.includes(sub);
 }
 
 function buildQuestionChartSVG(qId, qColor, isDark) {
@@ -676,7 +694,7 @@ function buildReportHTML() {
           font-weight:700;
           color:${txt2};
         ">
-        L1 ${details.exam}
+        L1 ${details.exam} exam
         </p>
       ` : ''}
 
@@ -697,11 +715,7 @@ function buildReportHTML() {
     font-weight:bold;
 
   ">
-    Prep Start: ${new Date(details.prepStartDate).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })}
+    Prep Start: ${getPremonth(details.prepStartDate)}
   </p>
 ` : ''}
 
@@ -754,16 +768,35 @@ function buildReportHTML() {
             "
           >
             <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
-              <thead>
-                <tr style="background:${isDark ? '#111827' : '#f8fafc'};">
-                  <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Subject</th>
-                  ${yesCounts.map(sub => `
-                    <th style="padding:10px;border:1px solid ${bdr};text-align:center;white-space:nowrap;">
-                      ${sub.subject}
-                    </th>
-                  `).join('')}
-                </tr>
-              </thead>
+            <thead>
+  <tr style="background:${isDark ? '#111827' : '#f8fafc'};">
+    <th style="padding:10px;border:1px solid ${bdr};text-align:left;">Subject</th>
+
+ ${yesCounts.map(sub => `
+  <th
+    style="
+      padding:10px;
+      border:1px solid ${bdr};
+      text-align:center;
+      white-space:nowrap;
+      font-weight:700;
+    "
+  >
+    <span
+      style="
+        color:${isInCompletedInClass(sub.subject) ? 'blue' : 'inherit'};
+        padding-bottom:${isInCompletedInClass(sub.subject) ? '4px' : '0'};
+        border-bottom:${isInCompletedInClass(sub.subject) ? '2px solid blue' : 'none'};
+        display:inline-block;
+      "
+    >
+      ${sub.subject}
+    </span>
+  </th>
+`).join('')}
+    
+  </tr>
+</thead>
 
               <tbody>
                 <tr>
@@ -804,7 +837,7 @@ async function stampWatermarkOnAllPages(pdf) {
         const ctx = canvas.getContext('2d');
 
         // increase visibility
-        ctx.globalAlpha = 0.5;
+        ctx.globalAlpha = 0.03;
         ctx.drawImage(img, 0, 0);
 
         const dataUrl = canvas.toDataURL('image/png');
@@ -813,7 +846,7 @@ async function stampWatermarkOnAllPages(pdf) {
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
 
-        const wmW = 120;
+        const wmW = 140;
         const aspectRatio = img.naturalHeight / img.naturalWidth;
         const wmH = wmW * aspectRatio;
 

@@ -643,7 +643,7 @@ const QUESTION_DATA = {
     }
   },
 
-  "Ethics": {
+  "Ethics": {   
     "89. Ethics and Trust in the Investment Profession": {
  "q1": { "type": "mcq", "question": "Have you watched the lectures?", "options": ["Yes", "No"] },
   "q2": { "type": "mcq", "question": "Have you completed the reading through Schweser Textbook?", "options": ["Yes", "No"] },
