@@ -124,9 +124,9 @@ const nextSubject =
           </p>
         )}
 
-        {chapters.map((chapterName, idx) => (
+        {chapters.map((chapterName) => (
           <ChapterAccordion
-            key={idx}
+            key={`${subjectName}-${chapterName}`}
             subjectName={subjectName}
             chapterName={chapterName}
           />
