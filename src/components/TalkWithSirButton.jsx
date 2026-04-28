@@ -727,6 +727,17 @@ function buildReportHTML() {
   </p>
 ` : ''}
 
+${details.attendingClass ? `
+  <p style="
+    margin:6px 0 0 0;
+   font-size:0.95rem;
+          font-weight:700;
+          color:${txt2};
+  ">
+    Mode of Classes: ${details.attendingClass}
+  </p>
+` : ''}
+
     </div>
 
     
@@ -952,7 +963,8 @@ if (
   !details.fullName ||
   !details.mobile ||
   !details.exam ||
-  !details.prepStartDate
+  !details.prepStartDate ||
+  !details.attendingClass
 ) {
   alert('Please complete all required general details first!');
   return;

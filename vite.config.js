@@ -14,7 +14,6 @@ export default defineConfig({
 
 
     allowedHosts: [
-      'believed-diana-communications-citations.trycloudflare.com'
     ],
 
   }
